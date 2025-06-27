@@ -15,7 +15,7 @@
     <PackageProjectUrl>https://github.com/AppifySheets/Human-Readable-Calculation-Steps-Dotnet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/AppifySheets/Human-Readable-Calculation-Steps-Dotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseFile>Unlicense</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     
     <!-- Versioning -->
