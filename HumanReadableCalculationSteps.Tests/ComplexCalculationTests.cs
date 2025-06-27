@@ -20,9 +20,18 @@ namespace HumanReadableCalculationSteps.Tests
             
             Assert.Equal(
 """
-TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18
+TaxValue =
+  საბაზო ფასი[100] 
+× დღგ[0.18]
+= 18
 
-FinalValue = (საბაზო ფასი[100] - ფასდაკლება[15] + TaxValue[18]) × ასოცი[120] = 12,360
+FinalValue =
+  (  საბაზო ფასი[100]
+   - ფასდაკლება[15]
+   + TaxValue[18]
+  )
+× ასოცი[120]
+= 12,360
 """, actualOutput);
         }
         
