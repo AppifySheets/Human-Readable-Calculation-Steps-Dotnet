@@ -1,0 +1,20 @@
+<Project>
+  <!-- Conditional output paths to separate WSL and Windows builds -->
+  <PropertyGroup Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))">
+    <BaseIntermediateOutputPath>obj/wsl/</BaseIntermediateOutputPath>
+    <OutputPath>bin/$(Configuration)/$(TargetFramework)-wsl/</OutputPath>
+    <MSBuildProjectExtensionsPath>obj/wsl/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))">
+    <BaseIntermediateOutputPath>obj\win\</BaseIntermediateOutputPath>
+    <OutputPath>bin\$(Configuration)\$(TargetFramework)-win\</OutputPath>
+    <MSBuildProjectExtensionsPath>obj\win\</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  
+  <!-- Disable automatic assembly info generation to avoid conflicts -->
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  </PropertyGroup>
+</Project>
