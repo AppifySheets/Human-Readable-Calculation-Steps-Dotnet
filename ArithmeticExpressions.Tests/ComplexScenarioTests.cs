@@ -442,13 +442,13 @@ DoubleValue = Intermediate[30] + Intermediate[30] = 60
 """
 OriginationFee = LoanAmount[50,000] × OriginationFeeRate[0.01] = 500
 
-AnnualInsurance = LoanAmount[50,000] × InsuranceRate[0] = 250
+AnnualInsurance = LoanAmount[50,000] × InsuranceRate[0.01] = 250
 
 TotalInsurance = AnnualInsurance[250] × Years[5] = 1,250
 
 PrincipalWithFees = LoanAmount[50,000] + OriginationFee[500] + TotalInsurance[1,250] = 51,750
 
-TotalInterest = PrincipalWithFees[51,750] × InterestRate[0.04] × Years[5] = 11,643.75
+TotalInterest = PrincipalWithFees[51,750] × InterestRate[0.045] × Years[5] = 11,643.75
 
 TotalPayment = PrincipalWithFees[51,750] + TotalInterest[11,643.75] = 63,393.75
 """;

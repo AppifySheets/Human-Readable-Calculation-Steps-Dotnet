@@ -831,5 +831,97 @@ TotalTax = Tax1[10] + Tax2[7.5] = 17.5
             Assert.Equal("Sum1 = a[5] + b[3] = 8", sum1.FinalCalculationSteps);
             Assert.Equal("Sum2 = c[2] + d[4] = 6", sum2.FinalCalculationSteps);
         }
+        
+        [Fact]
+        public void SimpleVariableAssignment_ShouldShowOnSeparateLines()
+        {
+            var basePrice = 100m.As("BasePrice");
+            var taxRate = 0.18m.As("TaxRate");
+            
+            // Simple variable assignments should appear in FinalCalculationSteps
+            Assert.Equal("BasePrice = 100", basePrice.FinalCalculationSteps);
+            Assert.Equal("TaxRate = 0.18", taxRate.FinalCalculationSteps);
+        }
+        
+        [Fact]
+        public void SimpleVariableAssignment_UsedInCalculation_ShouldShowInOperands()
+        {
+            var basePrice = 100m.As("BasePrice");
+            var taxRate = 0.18m.As("TaxRate");
+            
+            var tax = basePrice * taxRate;
+            
+            // Simple variables should appear with their values in the calculation
+            Assert.Equal("BasePrice[100] × TaxRate[0.18]", tax.Caption);
+            Assert.Equal(18m, tax.Value);
+        }
+        
+        [Fact]
+        public void MixedSimpleAndCalculatedAssignments_ShouldShowOnlyCalculationSteps()
+        {
+            var basePrice = 100m.As("BasePrice");
+            var taxRate = 0.18m.As("TaxRate");
+            var discount = 15m.As("Discount");
+            
+            var tax = (basePrice * taxRate).As("Tax");
+            var discountedPrice = basePrice - discount;
+            var finalPrice = (discountedPrice + tax).As("FinalPrice");
+            
+            // finalPrice should show only calculation steps, not simple assignments
+            var expectedSteps =
+"""
+Tax = BasePrice[100] × TaxRate[0.18] = 18
+
+FinalPrice = BasePrice[100] - Discount[15] + Tax[18] = 103
+""";
+            
+            Assert.Equal(expectedSteps, finalPrice.FinalCalculationSteps);
+        }
+        
+        [Fact]
+        public void ComplexCalculation_WithMultipleSimpleVariables_ShouldShowCorrectSteps()
+        {
+            var length = 10m.As("Length");
+            var width = 5m.As("Width");
+            var height = 3m.As("Height");
+            var density = 2.5m.As("Density");
+            
+            var area = (length * width).As("Area");
+            var volume = (area * height).As("Volume");
+            var mass = (volume * density).As("Mass");
+            
+            // mass should show all calculation steps but not simple variable definitions
+            var expectedSteps = 
+"""
+Area = Length[10] × Width[5] = 50
+
+Volume = Area[50] × Height[3] = 150
+
+Mass = Volume[150] × Density[2.5] = 375
+""";
+            
+            Assert.Equal(expectedSteps, mass.FinalCalculationSteps);
+        }
+        
+        [Fact]
+        public void WrappedSimpleVariable_ShouldShowDefinition()
+        {
+            var price = 100m.As("Price");
+            
+            // Individual simple variables should show their definition
+            Assert.Equal("Price = 100", price.FinalCalculationSteps);
+        }
+        
+        [Fact]
+        public void WrappedCalculatedValue_ShouldShowCalculationWithSimpleVariableValues()
+        {
+            var price = 100m.As("Price");
+            var taxRate = 0.18m.As("TaxRate");
+            
+            var tax = (price * taxRate).As("Tax");
+            
+            // Wrapped calculated values should show the calculation with variable values
+            Assert.Equal("Tax = Price[100] × TaxRate[0.18] = 18", tax.FinalCalculationSteps);
+        }
     }
 }

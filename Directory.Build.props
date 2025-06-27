@@ -1,20 +1,34 @@
 <Project>
   <!-- Conditional output paths to separate WSL and Windows builds -->
-  <PropertyGroup Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))">
-    <BaseIntermediateOutputPath>obj/wsl/</BaseIntermediateOutputPath>
-    <OutputPath>bin/$(Configuration)/$(TargetFramework)-wsl/</OutputPath>
-    <MSBuildProjectExtensionsPath>obj/wsl/</MSBuildProjectExtensionsPath>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))">
-    <BaseIntermediateOutputPath>obj\win\</BaseIntermediateOutputPath>
-    <OutputPath>bin\$(Configuration)\$(TargetFramework)-win\</OutputPath>
-    <MSBuildProjectExtensionsPath>obj\win\</MSBuildProjectExtensionsPath>
-  </PropertyGroup>
-  
-  <!-- Disable automatic assembly info generation to avoid conflicts -->
   <PropertyGroup>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!-- Automatic platform detection -->
+    <!-- <DetectedPlatform Condition="$([MSBuild]::IsOSPlatform('Windows'))">win</DetectedPlatform>
+    <DetectedPlatform Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</DetectedPlatform>
+    <DetectedPlatform Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</DetectedPlatform>
+    <DetectedPlatform Condition="'$(DetectedPlatform)' == ''">unknown</DetectedPlatform>
+     -->
+    <!-- Use BUILD_PLATFORM environment variable if set, otherwise use detected platform -->
+    <!-- <PlatformSuffix Condition="'$(BUILD_PLATFORM)' != ''">$(BUILD_PLATFORM)</PlatformSuffix> -->
+    <!-- <PlatformSuffix>$(DetectedPlatform)</PlatformSuffix> -->
+
+    <!-- Cross-platform user directory detection -->
+    <UserHomeDir Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(USERPROFILE)</UserHomeDir>
+    <UserHomeDir Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)</UserHomeDir>
+
+    <!-- Extract repository name - go up from src to get .git folder containing directory -->
+    <SrcDir>$([System.IO.Path]::GetDirectoryName($(MSBuildThisFileDirectory)))</SrcDir>
+    <RepoRootDir>$([System.IO.Path]::GetFileName($(SrcDir)))</RepoRootDir>
+    <!-- <SolutionName>$([System.IO.Path]::GetFileName($(RepoRootDir)))</SolutionName> -->
+
+    <!-- External build directories to avoid Windows/Linux intersection -->
+    <BaseOutputPath>$(UserHomeDir)/repos/builds/$(RepoRootDir)/$(MSBuildProjectName)/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(UserHomeDir)/repos/builds/$(RepoRootDir)/$(MSBuildProjectName)/obj/</BaseIntermediateOutputPath>
+
+    <!-- Prevent duplicate assembly info generation -->
+    <!-- <GenerateAssemblyInfo>false</GenerateAssemblyInfo> -->
+    <!-- <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute> -->
+    <!-- <GenerateApplicationInsightsAssemblyInfo>false</GenerateApplicationInsightsAssemblyInfo> -->
+    <!-- <GenerateRazorAssemblyInfo>false</GenerateRazorAssemblyInfo> -->
   </PropertyGroup>
+
 </Project>
