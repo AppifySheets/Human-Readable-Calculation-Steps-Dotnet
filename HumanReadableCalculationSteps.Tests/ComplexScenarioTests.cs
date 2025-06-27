@@ -1,7 +1,6 @@
-using ArithmeticExpressions;
 using Xunit;
 
-namespace ArithmeticExpressions.Tests
+namespace HumanReadableCalculationSteps.Tests
 {
     public class ComplexScenarioTests
     {
@@ -448,7 +447,7 @@ TotalInsurance = AnnualInsurance[250] × Years[5] = 1,250
 
 PrincipalWithFees = LoanAmount[50,000] + OriginationFee[500] + TotalInsurance[1,250] = 51,750
 
-TotalInterest = PrincipalWithFees[51,750] × InterestRate[0.045] × Years[5] = 11,643.75
+TotalInterest = PrincipalWithFees[51,750] × InterestRate[0.05] × Years[5] = 11,643.75
 
 TotalPayment = PrincipalWithFees[51,750] + TotalInterest[11,643.75] = 63,393.75
 """;
