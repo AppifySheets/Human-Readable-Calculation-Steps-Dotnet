@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArithmeticExpressions", "ArithmeticExpressions\ArithmeticExpressions.csproj", "{AE607F8D-162C-4034-BBB3-7051C7AD742D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HumanReadableCalculationSteps", "HumanReadableCalculationSteps\HumanReadableCalculationSteps.csproj", "{AE607F8D-162C-4034-BBB3-7051C7AD742D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArithmeticExpressions.Tests", "ArithmeticExpressions.Tests\ArithmeticExpressions.Tests.csproj", "{D2FD5CBE-348E-4DCC-B93A-404C732DF27E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HumanReadableCalculationSteps.Tests", "HumanReadableCalculationSteps.Tests\HumanReadableCalculationSteps.Tests.csproj", "{D2FD5CBE-348E-4DCC-B93A-404C732DF27E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFiles", "SolutionFiles", "{E32EB8ED-0BC5-4BED-9005-567B5377CDAB}"
 	ProjectSection(SolutionItems) = preProject

@@ -1,7 +1,6 @@
-using ArithmeticExpressions;
 using Xunit;
 
-namespace ArithmeticExpressions.Tests
+namespace HumanReadableCalculationSteps.Tests
 {
     public class ArithmeticTests
     {
