@@ -4,6 +4,34 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Properties -->
+    <PackageId>Appify.HumanReadableCalculationSteps</PackageId>
+    <Title>Human Readable Calculation Steps</Title>
+    <Description>A library for creating human-readable calculation steps</Description>
+    <Authors>Petre Chitashvili</Authors>
+    <Company>AppifySheets</Company>
+    <PackageTags>calculation;formatting;human-readable;steps</PackageTags>
+    <PackageProjectUrl>https://github.com/AppifySheets/Human-Readable-Calculation-Steps-Dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AppifySheets/Human-Readable-Calculation-Steps-Dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseFile>Unlicense</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <!-- Versioning -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    
+    <!-- Enable package generation -->
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
 </Project>
