@@ -472,7 +472,7 @@ namespace HumanReadableCalculationSteps.Tests
             Assert.Equal(18m, tax.Value);
             Assert.Equal("TaxValue", tax.Caption);
             
-            Assert.Equal("TaxValue =\n  საბაზო ფასი[100] \n× დღგ[0.18] \n= 18", tax.FinalCalculationSteps);
+            Assert.Equal("TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18", tax.FinalCalculationSteps);
         }
         
         [Fact]
@@ -491,7 +491,7 @@ namespace HumanReadableCalculationSteps.Tests
             Assert.Equal(103m, finalPrice.Value); // 85 + 18 = 103
             Assert.Equal("საბაზო ფასი[100] - ფასდაკლება[15] + TaxValue", finalPrice.Caption);
             
-            Assert.Equal("TaxValue =\n  საბაზო ფასი[100] \n× დღგ[0.18] \n= 18", tax.FinalCalculationSteps);
+            Assert.Equal("TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18", tax.FinalCalculationSteps);
         }
         
         [Fact]
@@ -519,7 +519,7 @@ namespace HumanReadableCalculationSteps.Tests
             Assert.Equal(1, finalResult.CalculationSteps.Count);
             Assert.Equal("Result = a[10] + b[5] × c[2] - d[3] = 17", finalResult.CalculationSteps[0]);
             
-            Assert.Equal("Result =\n  a[10] \n+ b[5]  \n× c[2]  \n- d[3] \n= 17", complexCalc.FinalCalculationSteps);
+            Assert.Equal("Result = a[10] + b[5] × c[2] - d[3] = 17", complexCalc.FinalCalculationSteps);
         }
         
         [Fact]
@@ -539,18 +539,12 @@ namespace HumanReadableCalculationSteps.Tests
             Assert.Equal(480m, volume.Value);
             Assert.Equal("Volume", volume.Caption);
             
-            Assert.Equal("Area = \n  length[12] \n× width[8] \n= 96", area.FinalCalculationSteps);
+            Assert.Equal("Area = length[12] × width[8] = 96", area.FinalCalculationSteps);
             Assert.Equal(
 """
-Area = 
-  length[12] 
-× width[8] 
-= 96
+Area = length[12] × width[8] = 96
 
-Volume =
-  Area[96] 
-× height[5] 
-= 480
+Volume = Area[96] × height[5] = 480
 """, volume.FinalCalculationSteps);
         }
 
@@ -580,20 +574,11 @@ Volume =
 
             Assert.Equal(
 """
-Tax1 = 
-  price1[50] 
-× tax1Rate[0.1] 
-= 5
+Tax1 = price1[50] × tax1Rate[0.1] = 5
 
-Tax2 = 
-  price2[30] 
-× tax2Rate[0.15] 
-= 4.5
+Tax2 = price2[30] × tax2Rate[0.15] = 4.5
 
-TotalTax =
-  Tax1[5] 
-+ Tax2[4.5] 
-= 9.5
+TotalTax = Tax1[5] + Tax2[4.5] = 9.5
 """, totalTax.FinalCalculationSteps);
 
         }
@@ -611,7 +596,7 @@ TotalTax =
             Assert.Equal(13m, result.Value); // (5 * 2) + 3 = 10 + 3 = 13
             Assert.Equal("Product + c[3]", result.Caption);
             
-            Assert.Equal("Product =\n  a[5] \n× b[2] \n= 10", product.FinalCalculationSteps);
+            Assert.Equal("Product = a[5] × b[2] = 10", product.FinalCalculationSteps);
         }
         
         [Fact]
@@ -627,7 +612,7 @@ TotalTax =
             Assert.Equal(4m, result.Value); // (6 - 4) * 2 = 2 * 2 = 4
             Assert.Equal("Diff × z[2]", result.Caption);
             
-            Assert.Equal("Diff = \n  x[6] \n- y[4] \n= 2", difference.FinalCalculationSteps);
+            Assert.Equal("Diff = x[6] - y[4] = 2", difference.FinalCalculationSteps);
         }
         
         [Fact]
@@ -651,35 +636,20 @@ TotalTax =
             Assert.Equal(375m, mass.Value);
             Assert.Equal("Mass", mass.Caption);
             
-            Assert.Equal("Area = \n  length[10] \n× width[5] \n= 50", area.FinalCalculationSteps);
+            Assert.Equal("Area = length[10] × width[5] = 50", area.FinalCalculationSteps);
             Assert.Equal(
 """
-Area = 
-  length[10] 
-× width[5] 
-= 50
+Area = length[10] × width[5] = 50
 
-Volume =
-  Area[50] 
-× height[3] 
-= 150
+Volume = Area[50] × height[3] = 150
 """, volume.FinalCalculationSteps);
             Assert.Equal(
 """
-Area = 
-  length[10] 
-× width[5] 
-= 50
+Area = length[10] × width[5] = 50
 
-Volume =
-  Area[50] 
-× height[3] 
-= 150
+Volume = Area[50] × height[3] = 150
 
-Mass = 
-  Volume[150] 
-× density[2.5] 
-= 375
+Mass = Volume[150] × density[2.5] = 375
 """, mass.FinalCalculationSteps);
         }
         
@@ -698,7 +668,7 @@ Mass =
             Assert.Equal(1075m, total.Value); // 1000 + 100 - 25 = 1075
             Assert.Equal("principal[1,000] + Interest - fee[25]", total.Caption);
             
-            Assert.Equal("Interest =\n  principal[1,000] \n× rate[0.05]  \n× time[2] \n= 100", interest.FinalCalculationSteps);
+            Assert.Equal("Interest = principal[1,000] × rate[0.05] × time[2] = 100", interest.FinalCalculationSteps);
         }
         
         [Fact]
@@ -714,7 +684,7 @@ Mass =
             Assert.NotEqual(originalResult.Caption, wrappedResult.Caption);
             Assert.Equal("Sum", wrappedResult.Caption);
             
-            Assert.Equal("Sum = \n  a[7] \n+ b[3] \n= 10", wrappedResult.FinalCalculationSteps);
+            Assert.Equal("Sum = a[7] + b[3] = 10", wrappedResult.FinalCalculationSteps);
         }
         
         [Fact]
@@ -731,7 +701,7 @@ Mass =
             Assert.Equal(20m, finalAmount.Value); // 15 + 5 = 20
             Assert.Equal("Average + bonus[5]", finalAmount.Caption);
             
-            Assert.Equal("Average =\n  total[120] \n÷ count[8] \n= 15", average.FinalCalculationSteps);
+            Assert.Equal("Average = total[120] ÷ count[8] = 15", average.FinalCalculationSteps);
         }
         
         [Fact]
@@ -768,7 +738,7 @@ Mass =
             Assert.Equal("Tax = basePrice[100] × taxRate[0.18] = 18", finalPrice.CalculationSteps[0]);
             // No intermediate calculation steps are generated anymore
             
-            Assert.Equal("Tax = \n  basePrice[100] \n× taxRate[0.18] \n= 18", tax.FinalCalculationSteps);
+            Assert.Equal("Tax = basePrice[100] × taxRate[0.18] = 18", tax.FinalCalculationSteps);
         }
         
         [Fact]
@@ -797,18 +767,12 @@ Mass =
             Assert.Equal("Area = length[10] × width[5] = 50", mass.CalculationSteps[0]);
             Assert.Equal("Volume = Area[50] × height[3] = 150", mass.CalculationSteps[1]);
             
-            Assert.Equal("Area = \n  length[10] \n× width[5] \n= 50", area.FinalCalculationSteps);
+            Assert.Equal("Area = length[10] × width[5] = 50", area.FinalCalculationSteps);
             Assert.Equal(
 """
-Area = 
-  length[10] 
-× width[5] 
-= 50
+Area = length[10] × width[5] = 50
 
-Volume =
-  Area[50] 
-× height[3] 
-= 150
+Volume = Area[50] × height[3] = 150
 """, volume.FinalCalculationSteps);
         }
         
@@ -831,20 +795,11 @@ Volume =
             
             Assert.Equal(
 """
-Tax1 = 
-  price1[100] 
-× taxRate1[0.1] 
-= 10
+Tax1 = price1[100] × taxRate1[0.1] = 10
 
-Tax2 = 
-  price2[50] 
-× taxRate2[0.15] 
-= 7.5
+Tax2 = price2[50] × taxRate2[0.15] = 7.5
 
-TotalTax =
-  Tax1[10] 
-+ Tax2[7.5] 
-= 17.5
+TotalTax = Tax1[10] + Tax2[7.5] = 17.5
 """, totalTax.FinalCalculationSteps);
         }
         
@@ -872,8 +827,8 @@ TotalTax =
             Assert.Equal("Sum1 = a[5] + b[3] = 8", finalResult.CalculationSteps[0]);
             Assert.Equal("Sum2 = c[2] + d[4] = 6", finalResult.CalculationSteps[1]);
             
-            Assert.Equal("Sum1 = \n  a[5] \n+ b[3] \n= 8", sum1.FinalCalculationSteps);
-            Assert.Equal("Sum2 = \n  c[2] \n+ d[4] \n= 6", sum2.FinalCalculationSteps);
+            Assert.Equal("Sum1 = a[5] + b[3] = 8", sum1.FinalCalculationSteps);
+            Assert.Equal("Sum2 = c[2] + d[4] = 6", sum2.FinalCalculationSteps);
         }
         
         [Fact]
@@ -914,16 +869,9 @@ TotalTax =
             // finalPrice should show only calculation steps, not simple assignments
             var expectedSteps =
 """
-Tax = 
-  BasePrice[100] 
-× TaxRate[0.18] 
-= 18
+Tax = BasePrice[100] × TaxRate[0.18] = 18
 
-FinalPrice =
-  BasePrice[100] 
-- Discount[15]  
-+ Tax[18] 
-= 103
+FinalPrice = BasePrice[100] - Discount[15] + Tax[18] = 103
 """;
             
             Assert.Equal(expectedSteps, finalPrice.FinalCalculationSteps);
@@ -944,20 +892,11 @@ FinalPrice =
             // mass should show all calculation steps but not simple variable definitions
             var expectedSteps = 
 """
-Area = 
-  Length[10] 
-× Width[5] 
-= 50
+Area = Length[10] × Width[5] = 50
 
-Volume =
-  Area[50] 
-× Height[3] 
-= 150
+Volume = Area[50] × Height[3] = 150
 
-Mass = 
-  Volume[150] 
-× Density[2.5] 
-= 375
+Mass = Volume[150] × Density[2.5] = 375
 """;
             
             Assert.Equal(expectedSteps, mass.FinalCalculationSteps);
@@ -981,7 +920,7 @@ Mass =
             var tax = (price * taxRate).As("Tax");
             
             // Wrapped calculated values should show the calculation with variable values
-            Assert.Equal("Tax = \n  Price[100] \n× TaxRate[0.18] \n= 18", tax.FinalCalculationSteps);
+            Assert.Equal("Tax = Price[100] × TaxRate[0.18] = 18", tax.FinalCalculationSteps);
         }
     }
 }

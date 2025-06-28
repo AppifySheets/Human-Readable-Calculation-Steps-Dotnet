@@ -20,10 +20,7 @@ namespace HumanReadableCalculationSteps.Tests
             
             Assert.Equal(
 """
-TaxValue =
-  საბაზო ფასი[100] 
-× დღგ[0.18]
-= 18
+TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18
 
 FinalValue =
   (  საბაზო ფასი[100]
@@ -57,15 +54,22 @@ FinalValue =
             var actualOutput = finalPrice.FinalCalculationSteps;
             
             Assert.Equal(
-                """
-                DiscountedPrice = საბაზო ფასი[100] - ფასდაკლება[15] = 85
+"""
+DiscountedPrice = საბაზო ფასი[100] - ფასდაკლება[15] = 85
 
-                SomeValueResult = DiscountedPrice[85] × SomeValue[55.23] = 4,694.8
+SomeValueResult = DiscountedPrice[85] × SomeValue[55.23] = 4,694.8
 
-                TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18
+TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18
 
-                FinalValue = SomeValueResult[4,694.8] × (DiscountedPrice[85] + TaxValue[18]) × ასოცი[120] = 58,027,789.8
-                """, actualOutput);
+FinalValue =
+  SomeValueResult[4,694.8] 
+× 
+  (  DiscountedPrice[85] 
+   + TaxValue[18]
+  )
+× ასოცი[120]
+= 58,027,789.8
+""", actualOutput);
         }
     }
 }
