@@ -162,6 +162,129 @@ public static class VExtensions
         // Mark this as a wrapped value by giving it precedence -1 to indicate it's a named intermediate result
         return new NamedValueWithCaption(valueWithCaption.Value, newCaption, precedence: -1, calculationSteps: steps);
     }
+
+    // LINQ Sum extension methods for ValueWithCaption
+    public static ValueWithCaption Sum<T>(this IEnumerable<T> source, Func<T, ValueWithCaption> selector)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (selector == null) throw new ArgumentNullException(nameof(selector));
+
+        var values = source.Select(selector).ToList();
+        return SumInternal(values);
+    }
+
+    public static ValueWithCaption Sum(this IEnumerable<ValueWithCaption> source)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        var values = source.ToList();
+        return SumInternal(values);
+    }
+
+    private static ValueWithCaption SumInternal(List<ValueWithCaption> values)
+    {
+        if (values.Count == 0)
+        {
+            return new ValueWithCaption(0m, "0", precedence: 0);
+        }
+
+        if (values.Count == 1)
+        {
+            var single = values[0];
+            return new ValueWithCaption(single.Value, $"{single.Caption}[{CleanDecimalFormatting(single.Value.ToString(CultureInfo.InvariantCulture))}]", precedence: 0, calculationSteps: single.CalculationSteps);
+        }
+
+        var totalValue = values.Sum(v => v.Value);
+        var allCalculationSteps = new List<string>();
+
+        // Combine calculation steps from all values
+        foreach (var value in values)
+        {
+            foreach (var step in value.CalculationSteps)
+            {
+                if (!allCalculationSteps.Contains(step))
+                {
+                    allCalculationSteps.Add(step);
+                }
+            }
+        }
+
+        string caption;
+        if (values.Count <= 3)
+        {
+            // Expanded format: item1[value1] + item2[value2] + item3[value3]
+            var formattedItems = values.Select(v => $"{v.Caption}[{CleanDecimalFormatting(v.Value.ToString(CultureInfo.InvariantCulture))}]");
+            caption = string.Join(" + ", formattedItems);
+        }
+        else
+        {
+            // Compact format: Sum(itemName, count(N))[total_value]
+            var commonName = ExtractCommonName(values.Select(v => v.Caption).ToList());
+            var formattedTotal = CleanDecimalFormatting(totalValue.ToString(CultureInfo.InvariantCulture));
+            caption = $"Sum({commonName}, count({values.Count}))[{formattedTotal}]";
+        }
+
+        return new ValueWithCaption(totalValue, caption, precedence: 1, calculationSteps: allCalculationSteps);
+    }
+
+    private static string ExtractCommonName(List<string> captions)
+    {
+        if (captions.Count == 0) return "Item";
+        if (captions.Count == 1) return captions[0];
+
+        // For patterns like "Employee1Advance", "Employee2Advance" -> "AdvanceInSalary"
+        // First check if all captions end with the same suffix after removing numbers
+        var firstCaption = captions[0];
+        
+        // Look for a common suffix pattern (after removing numbers)
+        var suffixPattern = System.Text.RegularExpressions.Regex.Replace(firstCaption, @"^.*?\d+", "");
+        if (!string.IsNullOrEmpty(suffixPattern) && captions.All(c => 
+            System.Text.RegularExpressions.Regex.Replace(c, @"^.*?\d+", "") == suffixPattern))
+        {
+            return suffixPattern;
+        }
+        
+        // Check if all captions end with the same word (split by uppercase letters or numbers)
+        var words = System.Text.RegularExpressions.Regex.Split(firstCaption, @"(?=[A-Z]|\d)").Where(w => !string.IsNullOrEmpty(w)).ToArray();
+        if (words.Length > 0)
+        {
+            var lastWord = words[^1];
+            // Remove any trailing numbers from the last word
+            lastWord = System.Text.RegularExpressions.Regex.Replace(lastWord, @"\d+$", "");
+            if (!string.IsNullOrEmpty(lastWord) && captions.All(c => c.Contains(lastWord)))
+            {
+                return lastWord;
+            }
+        }
+        
+        // Check if all captions start with the same word and have numbers
+        if (words.Length > 0)
+        {
+            var firstWord = words[0];
+            var basePattern = System.Text.RegularExpressions.Regex.Replace(firstWord, @"\d+$", "");
+            if (basePattern.Length > 0 && captions.All(c => c.StartsWith(basePattern)))
+            {
+                return basePattern;
+            }
+        }
+        
+        // If no clear pattern, find longest common prefix
+        var commonPrefix = firstCaption;
+        foreach (var caption in captions.Skip(1))
+        {
+            var i = 0;
+            while (i < commonPrefix.Length && i < caption.Length && commonPrefix[i] == caption[i])
+            {
+                i++;
+            }
+            commonPrefix = commonPrefix.Substring(0, i);
+        }
+        
+        // Remove trailing numbers or common separators
+        commonPrefix = System.Text.RegularExpressions.Regex.Replace(commonPrefix, @"[\d_-]*$", "");
+        
+        return string.IsNullOrEmpty(commonPrefix) ? "Item" : commonPrefix;
+    }
 }
 
 public class ValueWithCaption(decimal value, string caption, int precedence = 0, List<string>? calculationSteps = null)
