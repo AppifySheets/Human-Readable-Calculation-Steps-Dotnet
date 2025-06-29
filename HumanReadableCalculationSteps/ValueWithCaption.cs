@@ -275,6 +275,119 @@ public class ValueWithCaption(decimal value, string caption, int precedence = 0,
         var steps = CombineCalculationSteps(left, right);
         return new ValueWithCaption(result, $"{leftStr} ÷ {rightStr}", precedence, steps);
     }
+
+    // Greater than
+    public static bool operator >(ValueWithCaption left, ValueWithCaption right)
+    {
+        return left.Value > right.Value;
+    }
+
+    // Less than
+    public static bool operator <(ValueWithCaption left, ValueWithCaption right)
+    {
+        return left.Value < right.Value;
+    }
+
+    // Greater than or equal
+    public static bool operator >=(ValueWithCaption left, ValueWithCaption right)
+    {
+        return left.Value >= right.Value;
+    }
+
+    // Less than or equal
+    public static bool operator <=(ValueWithCaption left, ValueWithCaption right)
+    {
+        return left.Value <= right.Value;
+    }
+
+    // Equality
+    public static bool operator ==(ValueWithCaption left, ValueWithCaption right)
+    {
+        return left.Value == right.Value;
+    }
+
+    // Inequality
+    public static bool operator !=(ValueWithCaption left, ValueWithCaption right)
+    {
+        return left.Value != right.Value;
+    }
+
+    // Decimal comparison overloads - Greater than
+    public static bool operator >(ValueWithCaption left, decimal right)
+    {
+        return left.Value > right;
+    }
+
+    public static bool operator >(decimal left, ValueWithCaption right)
+    {
+        return left > right.Value;
+    }
+
+    // Decimal comparison overloads - Less than
+    public static bool operator <(ValueWithCaption left, decimal right)
+    {
+        return left.Value < right;
+    }
+
+    public static bool operator <(decimal left, ValueWithCaption right)
+    {
+        return left < right.Value;
+    }
+
+    // Decimal comparison overloads - Greater than or equal
+    public static bool operator >=(ValueWithCaption left, decimal right)
+    {
+        return left.Value >= right;
+    }
+
+    public static bool operator >=(decimal left, ValueWithCaption right)
+    {
+        return left >= right.Value;
+    }
+
+    // Decimal comparison overloads - Less than or equal
+    public static bool operator <=(ValueWithCaption left, decimal right)
+    {
+        return left.Value <= right;
+    }
+
+    public static bool operator <=(decimal left, ValueWithCaption right)
+    {
+        return left <= right.Value;
+    }
+
+    // Decimal comparison overloads - Equality
+    public static bool operator ==(ValueWithCaption left, decimal right)
+    {
+        return left.Value == right;
+    }
+
+    public static bool operator ==(decimal left, ValueWithCaption right)
+    {
+        return left == right.Value;
+    }
+
+    // Decimal comparison overloads - Inequality
+    public static bool operator !=(ValueWithCaption left, decimal right)
+    {
+        return left.Value != right;
+    }
+
+    public static bool operator !=(decimal left, ValueWithCaption right)
+    {
+        return left != right.Value;
+    }
+
+    // Override Equals and GetHashCode since we're overriding == and !=
+    public override bool Equals(object? obj)
+    {
+        return obj is ValueWithCaption other && Value == other.Value && Caption == other.Caption;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Value, Caption);
+    }
 }
 
 public class NamedValueWithCaption(decimal value, string caption, int precedence = -1, List<string>? calculationSteps = null)
