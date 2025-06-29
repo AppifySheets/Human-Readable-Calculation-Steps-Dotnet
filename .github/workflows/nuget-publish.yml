@@ -1,6 +1,8 @@
 name: Publish NuGet Package
 
 on:
+  release:
+    types: [published]
   push:
     tags:
       - 'v*'
@@ -31,6 +33,9 @@ jobs:
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           VERSION="${{ github.event.inputs.version }}"
+        elif [ "${{ github.event_name }}" = "release" ]; then
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION=${VERSION#v}  # Remove 'v' prefix if present
         else
           VERSION=${GITHUB_REF#refs/tags/v}
         fi
@@ -59,7 +64,7 @@ jobs:
       run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     - name: Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/')
+      if: startsWith(github.ref, 'refs/tags/') && github.event_name != 'release'
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
