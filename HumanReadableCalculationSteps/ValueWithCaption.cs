@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -169,7 +172,7 @@ public class ValueWithCaption(decimal value, string caption, int precedence = 0,
     public List<string> CalculationSteps { get; } = calculationSteps ?? [];
 
     public override string ToString() =>
-        this is NamedValueWithCaption { CalculationSteps.Count: 0 }
+        this is NamedValueWithCaption { CalculationSteps.Count: 0 } || (this is not NamedValueWithCaption && Precedence == 0)
             ? $"{Caption}[{VExtensions.CleanDecimalFormatting(Value.ToString(CultureInfo.InvariantCulture))}]"
             : Caption;
 
@@ -387,6 +390,88 @@ public class ValueWithCaption(decimal value, string caption, int precedence = 0,
     public override int GetHashCode()
     {
         return HashCode.Combine(Value, Caption);
+    }
+
+    // Static factory methods for expression-based creation
+    public static ValueWithCaption From(Expression<Func<decimal>> expression)
+    {
+        var (value, caption) = ExtractValueAndCaption(expression);
+        return new ValueWithCaption(value, caption, precedence: 0);
+    }
+
+    public static ValueWithCaption From(Expression<Func<int>> expression)
+    {
+        var (value, caption) = ExtractValueAndCaption(expression);
+        return new ValueWithCaption(value, caption, precedence: 0);
+    }
+
+    public static ValueWithCaption From(Expression<Func<double>> expression)
+    {
+        var (value, caption) = ExtractValueAndCaption(expression);
+        return new ValueWithCaption(Convert.ToDecimal(value), caption, precedence: 0);
+    }
+
+    public static ValueWithCaption From(Expression<Func<float>> expression)
+    {
+        var (value, caption) = ExtractValueAndCaption(expression);
+        return new ValueWithCaption(Convert.ToDecimal(value), caption, precedence: 0);
+    }
+
+    private static (T value, string caption) ExtractValueAndCaption<T>(Expression<Func<T>> expression)
+    {
+        // Compile and execute the expression to get the value
+        var compiledExpression = expression.Compile();
+        var value = compiledExpression();
+
+        // Extract caption from the expression tree
+        var caption = ExtractCaption(expression.Body);
+
+        return (value, caption);
+    }
+
+    private static string ExtractCaption(Expression expression)
+    {
+        switch (expression)
+        {
+            case ConstantExpression constantExpression:
+                // For literal values, use the value itself as caption
+                return VExtensions.CleanDecimalFormatting(constantExpression.Value?.ToString() ?? "null");
+
+            case MemberExpression memberExpression:
+                // For member access (variables, properties, fields)
+                var memberInfo = memberExpression.Member;
+                
+                // Check for DisplayName attribute on properties
+                if (memberInfo is PropertyInfo propertyInfo)
+                {
+                    var displayNameAttribute = propertyInfo.GetCustomAttribute<DisplayNameAttribute>();
+                    if (displayNameAttribute != null && !string.IsNullOrWhiteSpace(displayNameAttribute.DisplayName))
+                    {
+                        return displayNameAttribute.DisplayName;
+                    }
+                }
+                
+                // Check for DisplayName attribute on fields
+                if (memberInfo is FieldInfo fieldInfo)
+                {
+                    var displayNameAttribute = fieldInfo.GetCustomAttribute<DisplayNameAttribute>();
+                    if (displayNameAttribute != null && !string.IsNullOrWhiteSpace(displayNameAttribute.DisplayName))
+                    {
+                        return displayNameAttribute.DisplayName;
+                    }
+                }
+                
+                // Use the member name as fallback
+                return memberInfo.Name;
+
+            case UnaryExpression unaryExpression when unaryExpression.NodeType == ExpressionType.Convert:
+                // Handle type conversions (like int to decimal)
+                return ExtractCaption(unaryExpression.Operand);
+
+            default:
+                // For other expression types, try to extract a meaningful name
+                return expression.ToString();
+        }
     }
 }
 
