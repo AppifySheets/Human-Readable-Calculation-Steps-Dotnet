@@ -107,7 +107,8 @@ public static class VExtensions
             var simpleStep = $"{escapedCaption} = {formattedValue}";
             if (!steps.Contains(simpleStep)) steps.Add(simpleStep);
 
-            return new ValueWithCaption(valueWithCaption.Value, escapedCaption, precedence: -1, steps, effectiveFormat, captionIsEscaped: true);
+            return new ValueWithCaption(valueWithCaption.Value, escapedCaption, precedence: -1, steps, effectiveFormat,
+                captionIsEscaped: true, operands: [valueWithCaption]);
         }
 
         // For computed expressions, reconstruct the expression with wrapped values substituted
@@ -117,8 +118,9 @@ public static class VExtensions
         // Only add the step if it doesn't already exist to prevent duplicates
         if (!steps.Contains(newStep)) steps.Add(newStep);
 
-        // Precedence -1 marks a named intermediate result
-        return new ValueWithCaption(valueWithCaption.Value, escapedCaption, precedence: -1, steps, effectiveFormat, captionIsEscaped: true);
+        // Precedence -1 marks a named intermediate result; the named value is its operand
+        return new ValueWithCaption(valueWithCaption.Value, escapedCaption, precedence: -1, steps, effectiveFormat,
+            captionIsEscaped: true, operands: [valueWithCaption]);
     }
 
     // LINQ Sum extension methods for ValueWithCaption
@@ -164,24 +166,20 @@ public static class VExtensions
         // Combine calculation steps from all values, first occurrence wins
         var allCalculationSteps = values.SelectMany(v => v.Steps).Distinct().ToList();
 
-        string caption;
-        if (values.Count <= 3)
-        {
-            // Expanded format: item1[value1] + item2[value2] + item3[value3]
-            caption = string.Join(" + ", values.Select(v => $"{v._caption}[{v.FormattedValue}]"));
-        }
-        else
-        {
-            // Compact format: Sum(itemName, count(N))[total_value]
-            var commonName = ExtractCommonName(values.Select(v => v._caption).ToList());
-            var formattedTotal = (format ?? NumberFormat.Default).Format(totalValue);
-            caption = $"Sum({commonName}, count({values.Count}))[{formattedTotal}]";
-        }
+        // Up to three items are listed: item1[value1] + item2[value2] + item3[value3].
+        // More items use the compact form Sum(itemName, count(N))[total_value].
+        var compactCaption = values.Count <= 3
+            ? null
+            : $"Sum({ExtractCommonName(values.Select(v => v._caption).ToList())}, count({values.Count}))[{(format ?? NumberFormat.Default).Format(totalValue)}]";
+
+        string Rebuild(ValueWithCaption.NameResolver nameOf) =>
+            compactCaption ?? string.Join(" + ", values.Select(v => ValueWithCaption.RenderSumItem(v, nameOf)));
 
         // Sum results get precedence 2 so FinalCalculationSteps uses the "expression = result"
-        // format, and are flagged so FormatOperand can bracket them inside × and ÷ or on the
+        // format, and are flagged so operands can be bracketed inside × and ÷ or on the
         // right of - (they are additive despite the precedence).
-        return new ValueWithCaption(totalValue, caption, precedence: 2, allCalculationSteps, format, captionIsEscaped: true, isSumResult: true);
+        return new ValueWithCaption(totalValue, Rebuild(_ => null), precedence: 2, allCalculationSteps, format,
+            captionIsEscaped: true, isSumResult: true, operands: values, rebuild: Rebuild);
     }
 
     private static string ExtractCommonName(List<string> captions)
@@ -253,6 +251,13 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
     readonly List<string> _steps;
     readonly NumberFormat? _format;
 
+    // The operand tree. Operators record their two operands, Sum records its items and
+    // As() records the value it named; leaves have none. RenderPlan walks this tree to
+    // find shared sub-expressions. _rebuild re-renders a composite's caption with a
+    // name resolver, so a shared operand can be printed as Name[value] instead of inline.
+    readonly IReadOnlyList<ValueWithCaption> _operands;
+    readonly Func<NameResolver, string>? _rebuild;
+
     /// <summary>
     /// Creates a value. Captions of base values (precedence 0) and named values
     /// (precedence -1) are user text and are protected from the formatter; captions of
@@ -272,7 +277,9 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         NumberFormat? format,
         bool captionIsEscaped = false,
         bool captionIncludesValue = false,
-        bool isSumResult = false)
+        bool isSumResult = false,
+        IReadOnlyList<ValueWithCaption>? operands = null,
+        Func<NameResolver, string>? rebuild = null)
     {
         Value = value;
         Precedence = precedence;
@@ -281,7 +288,21 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         _caption = precedence > 0 || captionIsEscaped ? caption : CaptionEscaping.Escape(caption);
         CaptionIncludesValue = captionIncludesValue;
         IsSumResult = isSumResult;
+        _operands = operands ?? [];
+        _rebuild = rebuild;
     }
+
+    // Returns the name a composite operand should be printed under, or null to print it inline.
+    internal delegate string? NameResolver(ValueWithCaption node);
+
+    static readonly NameResolver NoNames = _ => null;
+
+    // Direct operands of this value (see the field comment).
+    internal IReadOnlyList<ValueWithCaption> Operands => _operands;
+
+    // Re-renders the caption of a composite, printing operands the resolver names as
+    // Name[value]. Leaves and named values return their caption unchanged.
+    internal string Rebuild(NameResolver nameOf) => _rebuild is null ? _caption : _rebuild(nameOf);
 
     public decimal Value { get; }
     public int Precedence { get; }
@@ -323,21 +344,20 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
 
     string BuildFinalCalculationSteps()
     {
-        // Sub-expressions that already have a named step are referred to by that name
-        // instead of being expanded again (issue #48). The caption and every stored step
-        // are rewritten before any layout decision is made, so the layout reflects the
-        // collapsed, shorter text.
-        var definitions = NamedExpressionCollapser.DefinitionsFrom(_steps);
-        var caption = NamedExpressionCollapser.Collapse(_caption, definitions);
+        // The caption and the definition steps are derived from the operand tree, so a
+        // sub-expression used more than once is derived once and referred to by name
+        // afterwards (issue #48). Everything below lays out that text.
+        var plan = RenderPlan.Create(this);
+        var caption = plan.Caption;
+        var steps = plan.Steps;
 
         {
             // If this has calculation steps, use the calculation steps logic
-            if (_steps.Count > 0)
+            if (steps.Count > 0)
             {
                 // Filter calculation steps based on context
-                var allSteps = _steps
+                var allSteps = steps
                     .Where(step => step.Contains(" = "))
-                    .Select(step => NamedExpressionCollapser.CollapseStep(step, definitions))
                     .ToList();
 
                 // Distinguish between simple assignments and calculations
@@ -408,7 +428,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 // Check if expression uses wrapped values (precedence -1) AND the CURRENT expression is complex enough to warrant multi-line
                 var shouldShowMultiLine = false;
                 
-                foreach (var step in _steps)
+                foreach (var step in steps)
                 {
                     if (step.Contains(" = ") && VExtensions.IsWrappedValueDefinition(step))
                     {
@@ -457,7 +477,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 }
                 
                 // All other cases - show the definitions, then the final line
-                var finalExpression = VExtensions.ReconstructExpressionWithValues(caption, _steps);
+                var finalExpression = VExtensions.ReconstructExpressionWithValues(caption, steps);
                 var finalValue = FormattedValue;
 
                 // When the caption already is the fully substituted expression there is no
@@ -529,7 +549,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         return operatorCount == 1 && step.Contains(" - ");
     }
     
-    static bool IsSimpleAssignmentStep(string step)
+    internal static bool IsSimpleAssignmentStep(string step)
     {
         // Simple assignment steps have the format "VariableName = Value" (no operations on the right side)
         if (!step.Contains(" = ")) return false;
@@ -958,11 +978,16 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
     // parenthesiseEqualPrecedence is set for the right operand of - and ÷: those operators
     // are not associative, so a - (b + c) and a ÷ (b × c) must keep their brackets even
     // though the operand has the same precedence as the operator.
-    static string FormatOperand(ValueWithCaption operand, int currentPrecedence, bool parenthesiseEqualPrecedence = false)
+    // nameOf lets RenderPlan print a shared composite as Name[value] instead of inline.
+    static string RenderOperand(ValueWithCaption operand, int currentPrecedence, bool parenthesiseEqualPrecedence, NameResolver nameOf)
     {
         // Base values (precedence 0) and named values (precedence -1) show caption[value]
         if (operand.Precedence <= 0)
             return operand.CaptionIncludesValue ? operand._caption : $"{operand._caption}[{operand.FormattedValue}]";
+
+        // A composite that has a name (explicit or generated) is referenced, not expanded
+        if (nameOf(operand) is { } name)
+            return $"{name}[{operand.FormattedValue}]";
 
         var needsParentheses =
             operand.Precedence < currentPrecedence
@@ -971,8 +996,14 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
             // Right side of - or ÷: same precedence, or an additive Sum, must be bracketed
             || (parenthesiseEqualPrecedence && (operand.Precedence == currentPrecedence || operand.IsSumResult));
 
-        return needsParentheses ? $"({operand._caption})" : operand._caption;
+        var text = operand.Rebuild(nameOf);
+        return needsParentheses ? $"({text})" : text;
     }
+
+    // Renders one Sum item as caption[value]; a composite item is printed by name when it
+    // has one, otherwise as its expression.
+    internal static string RenderSumItem(ValueWithCaption item, NameResolver nameOf) =>
+        $"{(item.Precedence > 0 ? nameOf(item) ?? item.Rebuild(nameOf) : item._caption)}[{item.FormattedValue}]";
 
     static List<string> CombineCalculationSteps(ValueWithCaption left, ValueWithCaption right)
     {
@@ -1007,13 +1038,22 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         string symbol,
         int precedence,
         bool parenthesiseRightAtEqualPrecedence,
-        decimal result) =>
-        new(result,
-            $"{FormatOperand(left, precedence)} {symbol} {FormatOperand(right, precedence, parenthesiseRightAtEqualPrecedence)}",
+        decimal result)
+    {
+        // The same rendering is used for the stored caption (no names) and, later, by
+        // RenderPlan with shared operands replaced by their names.
+        string Rebuild(NameResolver nameOf) =>
+            $"{RenderOperand(left, precedence, false, nameOf)} {symbol} {RenderOperand(right, precedence, parenthesiseRightAtEqualPrecedence, nameOf)}";
+
+        return new ValueWithCaption(result,
+            Rebuild(NoNames),
             precedence,
             CombineCalculationSteps(left, right),
             left.ExplicitFormat ?? right.ExplicitFormat,
-            captionIsEscaped: true);
+            captionIsEscaped: true,
+            operands: [left, right],
+            rebuild: Rebuild);
+    }
 
     // Addition (precedence 1)
     public static ValueWithCaption operator +(ValueWithCaption left, ValueWithCaption right) =>

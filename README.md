@@ -299,9 +299,24 @@ Custom formats are plain records: `new NumberFormat(maxDecimals: 4)`. `value.For
 
 Caption text is never interpreted as arithmetic. A caption such as `BB - card amount (gross)` is printed as one term, hyphen and parentheses included, and is never split into a subtraction. Captions containing `=`, brackets or decimal numbers (`ბრუტო 0.000000`) are also left exactly as written.
 
-### 12. Named steps are referred to, not re-expanded
+### 12. Shared sub-expressions are derived once
 
-Once a sub-expression has been given a name with `.As()`, any later occurrence of the same expression prints as `Name[value]`, even when the calculation kept using the unnamed copy:
+A sub-expression that is used more than once is printed once as a definition and referred to by name afterwards. If it was never named with `.As()`, it gets a generated name (`#1`, `#2`, ...):
+
+```csharp
+var shared = 10m.As("A") + 20m.As("B");
+var total = ((shared + 1m.As("C")) + (shared + 2m.As("D"))).As("Total");
+```
+
+```
+#1 = A[10] + B[20] = 30
+
+Total = #1[30] + C[1] + #1[30] + D[2] = 63
+```
+
+This keeps deeply composed calculations linear: a chain of eight levels that each reference the previous level twice prints as eight definitions instead of 514 lines.
+
+Once a sub-expression has been given a name with `.As()`, that name is used instead, even when the calculation kept using the unnamed copy:
 
 ```csharp
 var gross = a + b + c + d;

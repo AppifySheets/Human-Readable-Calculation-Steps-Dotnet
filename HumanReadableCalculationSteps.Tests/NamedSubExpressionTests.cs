@@ -1,10 +1,11 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace HumanReadableCalculationSteps.Tests
 {
-    // Covers GitHub issue #48: when a sub-expression has already been emitted as a
-    // named step, later references to the same expression should print as
-    // Name[value] instead of re-expanding the whole subtree.
+    // Covers GitHub issue #48: a sub-expression that is used more than once should be
+    // derived once and referred to by name afterwards, whether the caller named it with
+    // As() or left it unnamed.
     public class NamedSubExpressionTests
     {
         static (ValueWithCaption a, ValueWithCaption b, ValueWithCaption c, ValueWithCaption d) Terms() =>
@@ -69,7 +70,7 @@ Gross[100] - Pension[2] - Gross[100] × zero[0] = 98
         }
 
         [Fact]
-        public void WithoutANamedStep_TheExpressionIsStillExpanded()
+        public void UnnamedExpressionUsedTwice_GetsAGeneratedName()
         {
             var (a, b, c, d) = Terms();
             var pensionRate = 0.02m.As("pension %");
@@ -78,54 +79,89 @@ Gross[100] - Pension[2] - Gross[100] × zero[0] = 98
             var pension = (gross * pensionRate).As("Pension");
             var net = gross - pension;
 
-            // Nothing in the output defines the gross, so there is nothing to refer to and
-            // the terms are listed in full.
-            var steps = net.FinalCalculationSteps;
-            Assert.DoesNotContain("Gross", steps);
-            Assert.Contains("+ d[40]", steps);
-            Assert.Contains("× pension %[0.02]", steps);
+            // The gross appears twice (inside Pension and in the final line) and was never
+            // named, so it is derived once under a generated name.
+            var expected =
+"""
+#1 = a[10] + b[20] + c[30] + d[40] = 100
+
+Pension = #1[100] × pension %[0.02] = 2
+
+#1[100] - Pension[2] = 98
+""";
+            Assert.Equal(expected, net.FinalCalculationSteps);
         }
 
-        public class CollapserTests
+        [Fact]
+        public void UnnamedSharedComposite_IsDerivedOnce()
         {
-            static readonly NamedExpressionCollapser.Definition Sum = new("S", "a[1] + b[2]", "3");
-            static readonly NamedExpressionCollapser.Definition Product = new("P", "a[1] × b[2]", "2");
+            // Reproduction from the issue: identical arithmetic to the named case below, but
+            // the shared part was never given a name.
+            var unnamed = 10m.As("A") + 20m.As("B");
 
-            [Theory]
-            [InlineData("a[1] + b[2]", "S[3]")]
-            [InlineData("(a[1] + b[2]) × k[2]", "S[3] × k[2]")]
-            [InlineData("k[2] × (a[1] + b[2])", "k[2] × S[3]")]
-            [InlineData("a[1] + b[2] + c[3]", "S[3] + c[3]")]
-            [InlineData("a[1] + b[2] - c[3]", "S[3] - c[3]")]
-            [InlineData("c[3] + a[1] + b[2]", "c[3] + S[3]")]
-            // A textual match that is not a sub-tree of the expression must be left alone.
-            [InlineData("k[2] × a[1] + b[2]", "k[2] × a[1] + b[2]")]
-            [InlineData("a[1] + b[2] × k[2]", "a[1] + b[2] × k[2]")]
-            [InlineData("c[3] - a[1] + b[2]", "c[3] - a[1] + b[2]")]
-            public void SumDefinition(string expression, string expected) =>
-                Assert.Equal(expected, NamedExpressionCollapser.Collapse(expression, [Sum]));
+            var total = ((unnamed + 1m.As("C")) + (unnamed + 2m.As("D"))).As("Total");
 
-            [Theory]
-            [InlineData("a[1] × b[2] ÷ k[2]", "P[2] ÷ k[2]")]
-            [InlineData("k[2] - a[1] × b[2]", "k[2] - P[2]")]
-            [InlineData("k[2] × a[1] × b[2]", "k[2] × P[2]")]
-            [InlineData("k[2] ÷ a[1] × b[2]", "k[2] ÷ a[1] × b[2]")]
-            public void ProductDefinition(string expression, string expected) =>
-                Assert.Equal(expected, NamedExpressionCollapser.Collapse(expression, [Product]));
+            var expected =
+"""
+#1 = A[10] + B[20] = 30
 
-            [Fact]
-            public void LongerDefinitionsWinOverTheirOwnSubExpressions()
-            {
-                var outer = new NamedExpressionCollapser.Definition("T", "a[1] + b[2] + c[3]", "6");
+Total = #1[30] + C[1] + #1[30] + D[2] = 63
+""";
+            Assert.Equal(expected, total.FinalCalculationSteps);
+        }
 
-                Assert.Equal("T[6] × k[2]", NamedExpressionCollapser.Collapse("(a[1] + b[2] + c[3]) × k[2]", [Sum, outer]));
-            }
+        [Fact]
+        public void ExplicitName_WinsOverGeneratedName()
+        {
+            var shared = (10m.As("A") + 20m.As("B")).As("Shared");
 
-            [Fact]
-            public void ADefinitionDoesNotCollapseItself()
-            {
-                Assert.Equal("a[1] + b[2]", NamedExpressionCollapser.Collapse("a[1] + b[2]", [Sum], exceptName: "S"));
-            }
+            var total = ((shared + 1m.As("C")) + (shared + 2m.As("D"))).As("Total");
+
+            var expected =
+"""
+Shared = A[10] + B[20] = 30
+
+Total = Shared[30] + C[1] + Shared[30] + D[2] = 63
+""";
+            Assert.Equal(expected, total.FinalCalculationSteps);
+        }
+
+        [Fact]
+        public void GeneratedDefinitions_ComeAfterTheNamedStepsTheyUse()
+        {
+            var basePay = (100m.As("p") * 0.5m.As("r")).As("Base");
+            var shared = basePay + 1m.As("k");
+
+            var total = (shared + shared).As("Total");
+
+            var expected =
+"""
+Base = p[100] × r[0.5] = 50
+
+#1 = Base[50] + k[1] = 51
+
+Total = #1[51] + #1[51] = 102
+""";
+            Assert.Equal(expected, total.FinalCalculationSteps);
+        }
+
+        [Fact]
+        public void DoublingTree_GrowsLinearlyWithDepth()
+        {
+            // Each level references the previous one twice without naming it. In 1.3.3 this
+            // produced 514 lines at depth 8; every level should now be a single definition.
+            var current = 1m.As("Leaf") + 0m.As("Zero");
+            for (var i = 0; i < 8; i++)
+                current = current + current;
+
+            var steps = current.FinalCalculationSteps;
+            var lines = steps.Split("\r\n");
+
+            Assert.Equal(256m, current.Value);
+            Assert.Single(Regex.Matches(steps, @"Leaf\["));
+            Assert.Equal(17, lines.Length);
+            Assert.Equal("#1 = Leaf[1] + Zero[0] = 1", lines[0]);
+            Assert.Equal("#8[128] + #8[128] = 256", lines[^1]);
         }
     }
 }
