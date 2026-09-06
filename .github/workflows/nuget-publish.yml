@@ -16,7 +16,19 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    
+
+    # Permissions are listed explicitly because declaring any permission drops the
+    # default token scopes, so every scope this job relies on has to be named here.
+    permissions:
+      # The "Create GitHub Release" step below creates a release for plain tag pushes.
+      contents: write
+      # Pushing to GitHub Packages authenticates with the job's GITHUB_TOKEN.
+      packages: write
+      # Lets the job request a GitHub OIDC token, which nuget.org exchanges for a
+      # short-lived API key (trusted publishing). Without this the NuGet/login step
+      # fails with "unable to get ACTIONS_ID_TOKEN_REQUEST_URL".
+      id-token: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -106,9 +118,28 @@ jobs:
       if: env.SKIP_RELEASE != 'true'
       run: dotnet pack HumanReadableCalculationSteps/HumanReadableCalculationSteps.csproj --configuration Release --no-build --output ./artifacts
 
+    # Trusted publishing: instead of a long-lived NUGET_API_KEY secret, the job proves
+    # its identity to nuget.org with a GitHub OIDC token and receives an API key that
+    # is valid for one hour. Nothing to rotate, and a leaked log line expires by itself.
+    #
+    # This only works if a matching policy exists on nuget.org (username menu ->
+    # Trusted Publishing) naming: Repository Owner "AppifySheets", Repository
+    # "human-readable-calculation-steps", Workflow File "nuget-publish.yml" (file name
+    # only, no path). Renaming this file breaks publishing until the policy is updated.
+    #
+    # Each OIDC token buys exactly one API key, so the login has to sit immediately
+    # before the push rather than at the top of the job.
+    - name: NuGet login (exchange OIDC token for a short-lived API key)
+      if: env.SKIP_RELEASE != 'true'
+      id: nuget-login
+      uses: NuGet/login@v1
+      with:
+        # nuget.org profile name of the policy owner, NOT an email address.
+        user: ${{ secrets.NUGET_USER }}
+
     - name: Publish to NuGet
       if: env.SKIP_RELEASE != 'true'
-      run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     - name: Publish to GitHub Packages
       if: env.SKIP_RELEASE != 'true'
