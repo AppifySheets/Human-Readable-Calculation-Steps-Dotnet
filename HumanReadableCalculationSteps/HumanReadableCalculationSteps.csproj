@@ -31,9 +31,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Lets the test project exercise internal helpers (caption escaping, the named-expression
+         collapser) directly instead of only through FinalCalculationSteps. -->
+    <InternalsVisibleTo Include="HumanReadableCalculationSteps.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="../LICENSE" Pack="true" PackagePath="/" />
     <None Include="../README.md" Pack="true" PackagePath="/" />
     <None Include="../assets/icon.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
 
-</Project>
+</Project>

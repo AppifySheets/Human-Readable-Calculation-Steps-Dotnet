@@ -57,12 +57,12 @@ FinalValue =
 """
 DiscountedPrice = საბაზო ფასი[100] - ფასდაკლება[15] = 85
 
-SomeValueResult = DiscountedPrice[85] × SomeValue[55.23] = 4,694.8
+SomeValueResult = DiscountedPrice[85] × SomeValue[55.23] = 4,694.81
 
 TaxValue = საბაზო ფასი[100] × დღგ[0.18] = 18
 
 FinalValue =
-  SomeValueResult[4,694.8] 
+  SomeValueResult[4,694.81] 
 × 
   (  DiscountedPrice[85] 
    + TaxValue[18]
@@ -72,4 +72,4 @@ FinalValue =
 """, actualOutput);
         }
     }
-}
+}

@@ -164,7 +164,13 @@ Zero = a[15] - a[15] = 0
 
             var expectedSteps =
 """
-TwoB = a[12] + b[8] - a[12] - b[8] = 16
+TwoB =
+  a[12]
++ b[8]
+- (  a[12]
+   - b[8]
+  )
+= 16
 """;
             Assert.Equal(expectedSteps, result.FinalCalculationSteps);
         }
@@ -435,13 +441,13 @@ DoubleValue = Intermediate[30] + Intermediate[30] = 60
 """
 OriginationFee = LoanAmount[50,000] × OriginationFeeRate[0.01] = 500
 
-AnnualInsurance = LoanAmount[50,000] × InsuranceRate[0.01] = 250
+AnnualInsurance = LoanAmount[50,000] × InsuranceRate[0.005] = 250
 
 TotalInsurance = AnnualInsurance[250] × Years[5] = 1,250
 
 PrincipalWithFees = LoanAmount[50,000] + OriginationFee[500] + TotalInsurance[1,250] = 51,750
 
-TotalInterest = PrincipalWithFees[51,750] × InterestRate[0.05] × Years[5] = 11,643.75
+TotalInterest = PrincipalWithFees[51,750] × InterestRate[0.045] × Years[5] = 11,643.75
 
 TotalPayment = PrincipalWithFees[51,750] + TotalInterest[11,643.75] = 63,393.75
 """;
@@ -540,7 +546,7 @@ RushFee = AfterLoyaltyDiscount[12,825] × RushOrderSurcharge[0.15] = 1,923.75
 
 AfterRushFee = AfterLoyaltyDiscount[12,825] + RushFee[1,923.75] = 14,748.75
 
-Tax = AfterRushFee[14,748.75] × TaxRate[0.09] = 1,290.52
+Tax = AfterRushFee[14,748.75] × TaxRate[0.0875] = 1,290.52
 
 FinalPrice = AfterRushFee[14,748.75] + Tax[1,290.52] = 16,039.27
 """;
@@ -637,4 +643,4 @@ FinalResult = BaseAmount[100] × Rate[0.1] + BaseAmount[100] = 110
 
         #endregion
     }
-}
+}

@@ -259,11 +259,12 @@ var total = items
     .Aggregate(StaticValues.Zero, (acc, x) => acc + x);
 ```
 
-### 10. Decimal formatting in output
+### 10. Number formatting in output
 
-`FinalCalculationSteps` runs every numeric token through a single formatting pass:
+Every value is rendered through a `NumberFormat`. The default, `NumberFormat.Default`:
 
-- Rounds to **2 decimal places**
+- Rounds to **2 decimal places**, midpoints away from zero
+- Never shows fewer than **3 significant digits**, so a rate like `0.045` stays `0.045` instead of becoming `0.05`
 - Strips trailing zeros after the decimal point
 - Inserts **thousand separators** (`,`)
 - Drops the decimal point entirely when the value is an integer
@@ -275,8 +276,49 @@ var total = items
 | `1234.5m`      | `1,234.5`   |
 | `1234.56789m`  | `1,234.57`  |
 | `0.18m`        | `0.18`      |
+| `0.045m`       | `0.045`     |
+| `0.0125m`      | `0.0125`    |
 
-### 11. CRLF-stable output
+For amounts that should line up in a column, pass `NumberFormat.Money` (always two decimals) to `As`. A value keeps its format wherever it is printed, and the result of an operation inherits the format of the first operand that has one, so money times a rate is still money:
+
+```csharp
+var jul = 979.1m.As("Jul", NumberFormat.Money);
+var jun = 1020m.As("Jun", NumberFormat.Money);
+var may = 1063.1m.As("May", NumberFormat.Money);
+
+var total = jul + jun + may;
+// Jul[979.10] + Jun[1,020.00] + May[1,063.10] = 3,062.20
+
+var bonus = (1000m.As("Salary", NumberFormat.Money) * 0.05m.As("rate")).As("Bonus");
+// Bonus = Salary[1,000.00] × rate[0.05] = 50.00
+```
+
+Custom formats are plain records: `new NumberFormat(maxDecimals: 4)`. `value.FormattedValue` returns the number exactly as it appears in the steps.
+
+### 11. Captions can contain anything
+
+Caption text is never interpreted as arithmetic. A caption such as `BB - card amount (gross)` is printed as one term, hyphen and parentheses included, and is never split into a subtraction. Captions containing `=`, brackets or decimal numbers (`ბრუტო 0.000000`) are also left exactly as written.
+
+### 12. Named steps are referred to, not re-expanded
+
+Once a sub-expression has been given a name with `.As()`, any later occurrence of the same expression prints as `Name[value]`, even when the calculation kept using the unnamed copy:
+
+```csharp
+var gross = a + b + c + d;
+var grossNamed = gross.As("Gross");
+var pension = (gross * pensionRate).As("Pension");   // built from the unnamed copy
+var net = (grossNamed - pension).As("Net");
+```
+
+```
+Gross = a[10] + b[20] + c[30] + d[40] = 100
+
+Pension = Gross[100] × pension %[0.02] = 2
+
+Net = Gross[100] - Pension[2] = 98
+```
+
+### 13. CRLF-stable output
 
 `FinalCalculationSteps` always emits **CRLF** (`\r\n`) line endings, regardless of host platform, so output is byte-stable across Windows, Linux, and macOS — handy for snapshot tests and reproducible reports.
 

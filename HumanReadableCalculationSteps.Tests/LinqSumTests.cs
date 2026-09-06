@@ -300,7 +300,7 @@ namespace HumanReadableCalculationSteps.Tests
 
             // Assert
             Assert.Equal(2000m, profit.Value); // (1000+1500) - (300+200) = 2500 - 500 = 2000
-            Assert.Equal("Revenue1[1,000] + Revenue2[1,500] - Expense1[300] + Expense2[200] = 2,000", profit.FinalCalculationSteps);
+            Assert.Equal("Revenue1[1,000] + Revenue2[1,500] - (Expense1[300] + Expense2[200]) = 2,000", profit.FinalCalculationSteps);
         }
 
         [Fact]
@@ -484,4 +484,4 @@ namespace HumanReadableCalculationSteps.Tests
                 """, result.FinalCalculationSteps);
         }
     }
-}
+}

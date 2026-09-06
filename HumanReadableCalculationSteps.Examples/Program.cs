@@ -1,5 +1,4 @@
 using HumanReadableCalculationSteps;
-using System.Globalization;
 using System.Text;
 
 // Generates a Markdown showcase of representative library outputs. Each
@@ -137,7 +136,7 @@ foreach (var (title, code, build) in examples)
 {
     var value = build();
     var steps = value.FinalCalculationSteps;
-    var resultValue = FormatDisplayValue(value.Value);
+    var resultValue = value.FormattedValue;
 
     output.AppendLine($"## {title}");
     output.AppendLine();
@@ -168,13 +167,3 @@ Console.WriteLine($"Wrote {examples.Length} examples to {Path.GetFullPath(target
 // needing to download the artifact for quick eyeballing.
 Console.WriteLine();
 Console.WriteLine(output.ToString());
-
-// Format a value to match what FinalCalculationSteps renders: round to 2 decimal
-// places, strip trailing zeros, add thousand separators. Without this, raw
-// decimal.ToString() leaks the decimal type's accumulated scale (e.g. "1350.0",
-// "100.30", "30.0") which visually contradicts the FinalCalculationSteps line
-// directly below in the showcase output and makes reviewers wonder which
-// representation is the "real" one. The library's internal CleanDecimalFormatting
-// helper does the same job for FinalCalculationSteps; we mirror its rules here.
-static string FormatDisplayValue(decimal value) =>
-    Math.Round(value, 2).ToString("#,##0.##", CultureInfo.InvariantCulture);
