@@ -17,6 +17,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    # The trusted publishing policy on nuget.org is scoped to the "production"
+    # environment, so the OIDC token this job requests has to carry a matching
+    # environment claim. Without this line the token has no environment claim, the
+    # policy does not match, and the token exchange fails.
+    #
+    # The environment carries no protection rules, so it gates nothing; it exists to
+    # put the claim in the token. Renaming it means updating the nuget.org policy too.
+    environment: production
+
     # Permissions are listed explicitly because declaring any permission drops the
     # default token scopes, so every scope this job relies on has to be named here.
     permissions:
