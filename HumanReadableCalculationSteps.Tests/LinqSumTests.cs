@@ -334,7 +334,7 @@ namespace HumanReadableCalculationSteps.Tests
 
             // Assert
             Assert.Equal(7.8333333333333333333333333333m, averageHours.Value); // (8+7.5+8) / 3 = 23.5 / 3
-            Assert.Equal("(Monday[8] + Tuesday[7.5] + Wednesday[8]) ÷ DaysWorked[3] = 7.83", averageHours.FinalCalculationSteps);
+            Assert.Equal("(Monday[8] + Tuesday[7.5] + Wednesday[8]) / DaysWorked[3] = 7.83", averageHours.FinalCalculationSteps);
         }
 
         [Fact]

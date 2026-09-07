@@ -115,7 +115,7 @@ namespace HumanReadableCalculationSteps.Tests
         // ------------------------------------------------------------------
         // Captions containing reserved/formatter-significant characters
         // ------------------------------------------------------------------
-        // The formatter uses + - × ÷ [ ] ( ) = as delimiters. Captions
+        // The formatter uses + - × / [ ] ( ) = as delimiters. Captions
         // containing these may or may not survive intact. These tests
         // document the current behavior.
 
@@ -169,7 +169,7 @@ namespace HumanReadableCalculationSteps.Tests
         public void Caption_WithArithmeticOperator_DocumentsBehavior()
         {
             // A caption containing the same operator symbols the formatter
-            // uses ('+', '-', '×', '÷') is the most likely to cause confusion.
+            // uses ('+', '-', '×', '/') is the most likely to cause confusion.
             var v = 10m.As("a + b");
 
             var output = v.FinalCalculationSteps;

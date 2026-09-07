@@ -125,11 +125,11 @@ Result = a[10] + b[7] - a[10] = 7
 
             var result = (x * y / x).As("Simplified");
 
-            Assert.Equal(5m, result.Value); // (8 × 5) ÷ 8 = 40 ÷ 8 = 5 (equals y)
+            Assert.Equal(5m, result.Value); // (8 × 5) / 8 = 40 / 8 = 5 (equals y)
 
             var expectedSteps =
 """
-Simplified = x[8] × y[5] ÷ x[8] = 5
+Simplified = x[8] × y[5] / x[8] = 5
 """;
             Assert.Equal(expectedSteps, result.FinalCalculationSteps);
         }
@@ -318,12 +318,12 @@ FinalTotal = DiscountedPrice[170] + Tax[13.6] + Shipping[8.5] = 192.1
             var level5 = (level4 / 2m.As("L5Div")).As("Level5");
             var level6 = (level5 + 1m.As("L6Final")).As("Level6");
 
-            // Calculation: ((((5×2)+3)×1.5)-2)÷2)+1 = (((10+3)×1.5)-2)÷2)+1 = ((13×1.5)-2)÷2)+1 = (19.5-2)÷2)+1 = 17.5÷2)+1 = 8.75+1 = 9.75
+            // Calculation: ((((5×2)+3)×1.5)-2)/2)+1 = (((10+3)×1.5)-2)/2)+1 = ((13×1.5)-2)/2)+1 = (19.5-2)/2)+1 = 17.5/2)+1 = 8.75+1 = 9.75
             Assert.Equal(10m, level1.Value); // 5 × 2 = 10
             Assert.Equal(13m, level2.Value); // 10 + 3 = 13
             Assert.Equal(19.5m, level3.Value); // 13 × 1.5 = 19.5
             Assert.Equal(17.5m, level4.Value); // 19.5 - 2 = 17.5
-            Assert.Equal(8.75m, level5.Value); // 17.5 ÷ 2 = 8.75
+            Assert.Equal(8.75m, level5.Value); // 17.5 / 2 = 8.75
             Assert.Equal(9.75m, level6.Value); // 8.75 + 1 = 9.75
 
             var expectedSteps =
@@ -336,7 +336,7 @@ Level3 = Level2[13] × L3Mult[1.5] = 19.5
 
 Level4 = Level3[19.5] - L4Sub[2] = 17.5
 
-Level5 = Level4[17.5] ÷ L5Div[2] = 8.75
+Level5 = Level4[17.5] / L5Div[2] = 8.75
 
 Level6 = Level5[8.75] + L6Final[1] = 9.75
 """;

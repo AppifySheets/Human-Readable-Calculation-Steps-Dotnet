@@ -25,7 +25,7 @@ static class CaptionEscaping
         ['+'] = '',
         ['-'] = '',
         ['×'] = '',
-        ['÷'] = '',
+        ['/'] = '',
         ['='] = '',
         // A dot inside a caption ("ბრუტო 0.000000") used to be rewritten by the
         // decimal clean-up regex, which turned it into "ბრუტო 0".

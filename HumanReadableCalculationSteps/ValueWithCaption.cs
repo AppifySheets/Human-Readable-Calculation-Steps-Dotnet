@@ -77,7 +77,7 @@ public static class VExtensions
         var leftSide = parts[0].Trim();
         // Only include steps where left side is a single identifier (no operators or brackets)
         return !leftSide.Contains(" + ") && !leftSide.Contains(" - ") &&
-               !leftSide.Contains(" × ") && !leftSide.Contains(" ÷ ") &&
+               !leftSide.Contains(" × ") && !leftSide.Contains(" / ") &&
                !leftSide.Contains('[') && !leftSide.Contains(']') &&
                !leftSide.Contains('(') && !leftSide.Contains(')');
     }
@@ -176,7 +176,7 @@ public static class VExtensions
             compactCaption ?? string.Join(" + ", values.Select(v => ValueWithCaption.RenderSumItem(v, nameOf)));
 
         // Sum results get precedence 2 so FinalCalculationSteps uses the "expression = result"
-        // format, and are flagged so operands can be bracketed inside × and ÷ or on the
+        // format, and are flagged so operands can be bracketed inside × and / or on the
         // right of - (they are additive despite the precedence).
         return new ValueWithCaption(totalValue, Rebuild(_ => null), precedence: 2, allCalculationSteps, format,
             captionIsEscaped: true, isSumResult: true, operands: values, rebuild: Rebuild);
@@ -330,7 +330,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
     internal bool CaptionIncludesValue { get; }
 
     // True for a multi-item Sum result. Sums have precedence 2 but are additive, so they
-    // need brackets as operands of × and ÷ and on the right side of -.
+    // need brackets as operands of × and / and on the right side of -.
     internal bool IsSumResult { get; }
 
     // Public entry point: build the steps string using internal '\n' separators, restore
@@ -407,7 +407,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 // 2. There are multiple wrapped values
                 var expressionUsesWrappedValues = wrappedValueNames.Any(name => caption.Contains(name));
                 var hasMultipleWrappedValues = uniqueSteps.Count > 1;
-                var captionHasComplexOperations = caption.Contains('+') || caption.Contains('-') || caption.Contains('×') || caption.Contains('÷');
+                var captionHasComplexOperations = caption.Contains('+') || caption.Contains('-') || caption.Contains('×') || caption.Contains('/');
 
                 // For wrapped values (precedence -1), show their definition
                 if (Precedence == -1)
@@ -527,7 +527,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
 
         // Simple arithmetic (operands like a[8], Jan[1000]) and bracketed expressions such
         // as (A + B) × (C + D) - E put the result on its own "= result" line.
-        var isSimpleArithmetic = Regex.IsMatch(expression, @"^[a-zA-Z]+\[[^\]]+\](\s*[+\-×÷]\s*[a-zA-Z]+\[[^\]]+\])*$");
+        var isSimpleArithmetic = Regex.IsMatch(expression, @"^[a-zA-Z]+\[[^\]]+\](\s*[+\-×/]\s*[a-zA-Z]+\[[^\]]+\])*$");
         var isBracketedArithmetic = expression.Contains('(') && expression.Contains(')') && operatorCount >= 1;
 
         return isSimpleArithmetic || isBracketedArithmetic
@@ -543,7 +543,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         operatorCount += step.Split(" + ").Length - 1;
         operatorCount += step.Split(" - ").Length - 1;
         operatorCount += step.Split(" × ").Length - 1;
-        operatorCount += step.Split(" ÷ ").Length - 1;
+        operatorCount += step.Split(" / ").Length - 1;
         
         // Only single subtraction operations are considered simple for the specific test case
         return operatorCount == 1 && step.Contains(" - ");
@@ -562,7 +562,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
 
         // Left side should be a simple identifier (no operators or brackets)
         if (leftSide.Contains(" + ") || leftSide.Contains(" - ") ||
-            leftSide.Contains(" × ") || leftSide.Contains(" ÷ ") ||
+            leftSide.Contains(" × ") || leftSide.Contains(" / ") ||
             leftSide.Contains('[') || leftSide.Contains(']') ||
             leftSide.Contains('(') || leftSide.Contains(')'))
         {
@@ -571,7 +571,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
 
         // Right side should be just a number (no operators or brackets)
         return !rightSide.Contains(" + ") && !rightSide.Contains(" - ") &&
-               !rightSide.Contains(" × ") && !rightSide.Contains(" ÷ ") &&
+               !rightSide.Contains(" × ") && !rightSide.Contains(" / ") &&
                !rightSide.Contains('[') && !rightSide.Contains(']') &&
                !rightSide.Contains('(') && !rightSide.Contains(')');
     }
@@ -648,7 +648,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 {
                     lines[lineIndex] = line.TrimEnd() + " ";
                 }
-                else if (line.Trim() == "×" || line.Trim() == "+" || line.Trim() == "-" || line.Trim() == "÷")
+                else if (line.Trim() == "×" || line.Trim() == "+" || line.Trim() == "-" || line.Trim() == "/")
                 {
                     // Add space after operator if the next line starts with parentheses
                     var needsSpace = lineIndex < lines.Length - 1 && lines[lineIndex + 1].Trim().StartsWith("(");
@@ -707,14 +707,14 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 bracketOperatorCount += bracketContent.Split(" + ").Length - 1;
                 bracketOperatorCount += bracketContent.Split(" - ").Length - 1;
                 bracketOperatorCount += bracketContent.Split(" × ").Length - 1;
-                bracketOperatorCount += bracketContent.Split(" ÷ ").Length - 1;
+                bracketOperatorCount += bracketContent.Split(" / ").Length - 1;
                     
                 if (bracketOperatorCount > 0 || bracketContent.Length > 60)
                 {
                     return true;
                 }
                     
-                var terms = bracketContent.Split(new[] { " + ", " - ", " × ", " ÷ " }, StringSplitOptions.RemoveEmptyEntries);
+                var terms = bracketContent.Split(new[] { " + ", " - ", " × ", " / " }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var term in terms)
                 {
                     if (term.Trim().Length > 40)
@@ -729,7 +729,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         operatorCount += expression.Split(" + ").Length - 1;
         operatorCount += expression.Split(" - ").Length - 1;
         operatorCount += expression.Split(" × ").Length - 1;
-        operatorCount += expression.Split(" ÷ ").Length - 1;
+        operatorCount += expression.Split(" / ").Length - 1;
         
         if (operatorCount == 1)
         {
@@ -788,7 +788,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 parts.Add(bracketedContent);
                 continue;
             }
-            else if ((c == '+' || c == '-' || c == '×' || c == '÷') && i > 0 && i < expression.Length - 1)
+            else if ((c == '+' || c == '-' || c == '×' || c == '/') && i > 0 && i < expression.Length - 1)
             {
                 var hasSpaceAfter = expression[i+1] == ' ';
                 var hasSpaceBefore = expression[i-1] == ' ';
@@ -822,7 +822,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
             var part = parts[partIndex];
             var indent = new string(' ', baseIndentLevel * 2 + 2);
             
-            if (part.Length == 1 && "+-×÷".Contains(part))
+            if (part.Length == 1 && "+-×/".Contains(part))
             {
                 if (partIndex + 1 < parts.Count && 
                     parts[partIndex + 1].StartsWith("(") && 
@@ -888,7 +888,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 if (partIndex > 0)
                 {
                     var prevPartWasBracket = partIndex > 0 && parts[partIndex - 1].StartsWith("(") && parts[partIndex - 1].EndsWith(")");
-                    var prevPartWasOperator = partIndex > 0 && parts[partIndex - 1].Length == 1 && "+-×÷".Contains(parts[partIndex - 1]);
+                    var prevPartWasOperator = partIndex > 0 && parts[partIndex - 1].Length == 1 && "+-×/".Contains(parts[partIndex - 1]);
                     
                     if (!prevPartWasBracket)
                     {
@@ -947,15 +947,15 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         var content = expression.Substring(position + 1, closingPos - position - 1);
         if (ContainsMathematicalOperators(content)) return true;
         
-        var hasOperatorBefore = position > 0 && "+-×÷".Contains(expression[position - 1].ToString());
-        var hasOperatorAfter = closingPos < expression.Length - 1 && "+-×÷".Contains(expression[closingPos + 1].ToString());
+        var hasOperatorBefore = position > 0 && "+-×/".Contains(expression[position - 1].ToString());
+        var hasOperatorAfter = closingPos < expression.Length - 1 && "+-×/".Contains(expression[closingPos + 1].ToString());
         
         return hasOperatorBefore || hasOperatorAfter;
     }
 
     bool ContainsMathematicalOperators(string text)
     {
-        return text.Contains(" + ") || text.Contains(" - ") || text.Contains(" × ") || text.Contains(" ÷ ");
+        return text.Contains(" + ") || text.Contains(" - ") || text.Contains(" × ") || text.Contains(" / ");
     }
 
     static int CountOperators(string expression)
@@ -964,7 +964,7 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
         count += expression.Split(" + ").Length - 1;
         count += expression.Split(" - ").Length - 1;
         count += expression.Split(" × ").Length - 1;
-        count += expression.Split(" ÷ ").Length - 1;
+        count += expression.Split(" / ").Length - 1;
         return count;
     }
 
@@ -975,8 +975,8 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
                 : _caption);
 
     // Renders an operand for embedding in a parent expression.
-    // parenthesiseEqualPrecedence is set for the right operand of - and ÷: those operators
-    // are not associative, so a - (b + c) and a ÷ (b × c) must keep their brackets even
+    // parenthesiseEqualPrecedence is set for the right operand of - and /: those operators
+    // are not associative, so a - (b + c) and a / (b × c) must keep their brackets even
     // though the operand has the same precedence as the operator.
     // nameOf lets RenderPlan print a shared composite as Name[value] instead of inline.
     static string RenderOperand(ValueWithCaption operand, int currentPrecedence, bool parenthesiseEqualPrecedence, NameResolver nameOf)
@@ -991,9 +991,9 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
 
         var needsParentheses =
             operand.Precedence < currentPrecedence
-            // Sums have precedence 2 but are additive, so they need brackets inside × and ÷
+            // Sums have precedence 2 but are additive, so they need brackets inside × and /
             || (operand.IsSumResult && currentPrecedence == 2)
-            // Right side of - or ÷: same precedence, or an additive Sum, must be bracketed
+            // Right side of - or /: same precedence, or an additive Sum, must be bracketed
             || (parenthesiseEqualPrecedence && (operand.Precedence == currentPrecedence || operand.IsSumResult));
 
         var text = operand.Rebuild(nameOf);
@@ -1067,9 +1067,9 @@ public class ValueWithCaption : IComparable, IComparable<ValueWithCaption>
     public static ValueWithCaption operator *(ValueWithCaption left, ValueWithCaption right) =>
         Combine(left, right, "×", precedence: 2, parenthesiseRightAtEqualPrecedence: false, left.Value * right.Value);
 
-    // Division (precedence 2): a ÷ (b × c) and a ÷ (b ÷ c) keep their brackets
+    // Division (precedence 2): a / (b × c) and a / (b / c) keep their brackets
     public static ValueWithCaption operator /(ValueWithCaption left, ValueWithCaption right) =>
-        Combine(left, right, "÷", precedence: 2, parenthesiseRightAtEqualPrecedence: true, left.Value / right.Value);
+        Combine(left, right, "/", precedence: 2, parenthesiseRightAtEqualPrecedence: true, left.Value / right.Value);
 
     // Greater than
     public static bool operator >(ValueWithCaption left, ValueWithCaption right)

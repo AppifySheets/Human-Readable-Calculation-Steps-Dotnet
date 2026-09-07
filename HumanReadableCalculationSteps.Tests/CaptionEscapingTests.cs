@@ -72,7 +72,37 @@ namespace HumanReadableCalculationSteps.Tests
 
             var fixedSalary = (gross / one).As("ფიქსირებული ხელფასი");
 
-            Assert.Equal("ფიქსირებული ხელფასი = ბრუტო 0.000000[0] ÷ 1[1] = 0", fixedSalary.FinalCalculationSteps);
+            Assert.Equal("ფიქსირებული ხელფასი = ბრუტო 0.000000[0] / 1[1] = 0", fixedSalary.FinalCalculationSteps);
+        }
+
+        [Fact]
+        public void CaptionWithSlash_IsNotTreatedAsDivision()
+        {
+            // "/" became the division symbol in 1.6.0, and it is common inside real
+            // captions (period labels, units), so it has to be protected like the rest.
+            var july = 1200m.As("ხელფასი 2026/07");
+            var august = 1300m.As("ხელფასი 2026/08");
+            var rate = 2m.As("km/h");
+
+            var total = (july + august).As("სულ");
+
+            Assert.Equal("სულ = ხელფასი 2026/07[1,200] + ხელფასი 2026/08[1,300] = 2,500", total.FinalCalculationSteps);
+            Assert.Equal("km/h[2] / ხელფასი 2026/07[1,200] = 0.00167", (rate / july).FinalCalculationSteps);
+        }
+
+        [Fact]
+        public void SlashCaption_DoesNotAffectMultilineLayout()
+        {
+            var total = 10m.As("a/1") + 20m.As("b/2") + 30m.As("c/3") + 40m.As("d/4") + 50m.As("e/5");
+            var lines = total.FinalCalculationSteps.Split("\r\n");
+
+            // Each caption stays whole on its own line, none split at the slash, and no
+            // line is introduced by a "/" as though a division had been printed.
+            Assert.Equal(5, lines.Length);
+            Assert.Equal("  a/1[10]", lines[0]);
+            Assert.Equal(["+ b/2[20]", "+ c/3[30]", "+ d/4[40]"], lines[1..4]);
+            Assert.StartsWith("+ e/5[50]", lines[4]);
+            Assert.DoesNotContain(lines, line => line.TrimStart().StartsWith("/"));
         }
 
         [Fact]
@@ -117,9 +147,9 @@ namespace HumanReadableCalculationSteps.Tests
             var b = 2m.As("b");
             var c = 3m.As("c");
 
-            Assert.Equal("a[60] ÷ (b[2] × c[3]) = 10", (a / (b * c)).FinalCalculationSteps);
-            Assert.Equal("a[60] ÷ (b[2] ÷ c[3]) = 90", (a / (b / c)).FinalCalculationSteps);
-            Assert.Equal("a[60] × b[2] ÷ c[3] = 40", (a * (b / c)).FinalCalculationSteps);
+            Assert.Equal("a[60] / (b[2] × c[3]) = 10", (a / (b * c)).FinalCalculationSteps);
+            Assert.Equal("a[60] / (b[2] / c[3]) = 90", (a / (b / c)).FinalCalculationSteps);
+            Assert.Equal("a[60] × b[2] / c[3] = 40", (a * (b / c)).FinalCalculationSteps);
         }
 
         [Fact]

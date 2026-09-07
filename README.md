@@ -27,7 +27,9 @@ var result = (a + b) * c;
 // result.FinalCalculationSteps  -> "(a[2] + b[3]) × c[4] = 20"
 ```
 
-The `× ` and `÷` symbols are emitted instead of `*` and `/`, and parentheses are inserted automatically where operator precedence demands them.
+Multiplication prints as `×` rather than `*`, division prints as `/`, and parentheses are inserted automatically wherever precedence demands them, so the printed line always evaluates to the printed result.
+
+Division used to print as `÷`, which is easy to mistake for `+` in a dense column of figures. It changed to `/` in 1.6.0.
 
 ---
 
@@ -297,7 +299,7 @@ Custom formats are plain records: `new NumberFormat(maxDecimals: 4)`. `value.For
 
 ### 11. Captions can contain anything
 
-Caption text is never interpreted as arithmetic. A caption such as `BB - card amount (gross)` is printed as one term, hyphen and parentheses included, and is never split into a subtraction. Captions containing `=`, brackets or decimal numbers (`ბრუტო 0.000000`) are also left exactly as written.
+Caption text is never interpreted as arithmetic. A caption such as `BB - card amount (gross)` is printed as one term, hyphen and parentheses included, and is never split into a subtraction. The same holds for a caption carrying a slash, such as `ხელფასი 2026/07` or `km/h`, which is never read as a division. Captions containing `=`, brackets or decimal numbers (`ბრუტო 0.000000`) are also left exactly as written.
 
 ### 12. Shared sub-expressions are derived once
 
