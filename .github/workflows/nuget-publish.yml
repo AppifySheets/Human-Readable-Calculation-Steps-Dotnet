@@ -155,9 +155,17 @@ jobs:
     #
     # Each OIDC token buys exactly one API key, so the login has to sit immediately
     # before the push rather than at the top of the job.
+    # continue-on-error because nuget.org's token endpoint has been answering this
+    # exchange with an HTTP 502 since 2026-09-06, across two policy configurations and
+    # two action versions. A real policy mismatch answers 401 naming the field that
+    # differs (NuGet/login#9), so this is a fault on their side, not a misconfiguration
+    # here. The push step below falls back to the API key so a broken token service
+    # cannot stop a release; when nuget.org recovers, trusted publishing resumes on its
+    # own and the key stops being read.
     - name: NuGet login (exchange OIDC token for a short-lived API key)
       if: env.SKIP_RELEASE != 'true'
       id: nuget-login
+      continue-on-error: true
       uses: NuGet/login@v1.2.0
       with:
         # nuget.org profile name of the policy owner, NOT an email address.
@@ -165,7 +173,25 @@ jobs:
 
     - name: Publish to NuGet
       if: env.SKIP_RELEASE != 'true'
-      run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      env:
+        # Empty whenever the exchange above failed.
+        TRUSTED_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        FALLBACK_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: |
+        if [ -n "$TRUSTED_KEY" ]; then
+          echo "Publishing with a short-lived key from trusted publishing."
+          KEY="$TRUSTED_KEY"
+        elif [ -n "$FALLBACK_KEY" ]; then
+          # Surfaced as a warning on the run so this never becomes the silent norm.
+          echo "::warning::Trusted publishing was unavailable; falling back to the NUGET_API_KEY secret. Check whether nuget.org's token exchange works again, and drop the secret once it does."
+          KEY="$FALLBACK_KEY"
+        else
+          echo "::error::Trusted publishing failed and no NUGET_API_KEY secret is set, so there is no way to authenticate to nuget.org."
+          exit 1
+        fi
+
+        # Pushes the matching .snupkg alongside the .nupkg by itself.
+        dotnet nuget push ./artifacts/*.nupkg --api-key "$KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     # Runs even when the nuget.org steps failed, so a tag push still gets its release.
     - name: Create GitHub Release
