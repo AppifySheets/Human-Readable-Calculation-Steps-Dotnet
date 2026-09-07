@@ -127,6 +127,18 @@ jobs:
       if: env.SKIP_RELEASE != 'true'
       run: dotnet pack HumanReadableCalculationSteps/HumanReadableCalculationSteps.csproj --configuration Release --no-build --output ./artifacts
 
+    # GitHub Packages goes first, and deliberately so. It authenticates with the job's
+    # own GITHUB_TOKEN, so it has no external dependency and effectively always works.
+    # nuget.org publishing has failed on a credential twice (an expired API key, then a
+    # 502 from the trusted publishing token exchange), and while it sat first in this
+    # job every such failure also cost us the GitHub Packages copy and the release,
+    # leaving the version published nowhere at all.
+    - name: Publish to GitHub Packages
+      if: env.SKIP_RELEASE != 'true'
+      run: |
+        dotnet nuget add source --username AppifySheets --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/AppifySheets/index.json"
+        dotnet nuget push ./artifacts/*.nupkg --source "github" --skip-duplicate
+
     # Trusted publishing: instead of a long-lived NUGET_API_KEY secret, the job proves
     # its identity to nuget.org with a GitHub OIDC token and receives an API key that
     # is valid for one hour. Nothing to rotate, and a leaked log line expires by itself.
@@ -134,14 +146,19 @@ jobs:
     # This only works if a matching policy exists on nuget.org (username menu ->
     # Trusted Publishing) naming: Repository Owner "AppifySheets", Repository
     # "human-readable-calculation-steps", Workflow File "nuget-publish.yml" (file name
-    # only, no path). Renaming this file breaks publishing until the policy is updated.
+    # only, no path) and Environment "production" to match the job above. Renaming this
+    # file or that environment breaks publishing until the policy is updated.
+    #
+    # Pinned to v1.2.0 rather than the v1 floating tag for its enhanced logging: the
+    # token exchange has been answering 502, and a policy mismatch would instead give a
+    # 401 naming the field that differs, so the extra detail is what we have to go on.
     #
     # Each OIDC token buys exactly one API key, so the login has to sit immediately
     # before the push rather than at the top of the job.
     - name: NuGet login (exchange OIDC token for a short-lived API key)
       if: env.SKIP_RELEASE != 'true'
       id: nuget-login
-      uses: NuGet/login@v1
+      uses: NuGet/login@v1.2.0
       with:
         # nuget.org profile name of the policy owner, NOT an email address.
         user: ${{ secrets.NUGET_USER }}
@@ -150,14 +167,9 @@ jobs:
       if: env.SKIP_RELEASE != 'true'
       run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-    - name: Publish to GitHub Packages
-      if: env.SKIP_RELEASE != 'true'
-      run: |
-        dotnet nuget add source --username AppifySheets --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/AppifySheets/index.json"
-        dotnet nuget push ./artifacts/*.nupkg --source "github" --skip-duplicate
-
+    # Runs even when the nuget.org steps failed, so a tag push still gets its release.
     - name: Create GitHub Release
-      if: env.SKIP_RELEASE != 'true' && startsWith(github.ref, 'refs/tags/') && github.event_name != 'release'
+      if: always() && env.SKIP_RELEASE != 'true' && startsWith(github.ref, 'refs/tags/') && github.event_name != 'release'
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
