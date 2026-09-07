@@ -117,6 +117,8 @@ var p = ValueWithCaption.From(() => product.Price);
 // p.FinalCalculationSteps -> "Price"
 ```
 
+A value built with `From` prints just its caption until it takes part in some arithmetic, because on its own it has no derivation to show. `As` differs here: it records the assignment, so `100m.As("Price")` prints `Price = 100`. Either way the value appears as `caption[value]` once used in an expression.
+
 ### 5. `[DisplayName]` for human-friendly property captions
 
 If a property is annotated with `System.ComponentModel.DisplayNameAttribute`, that label is used instead of the raw property name.
@@ -297,9 +299,11 @@ var bonus = (1000m.As("Salary", NumberFormat.Money) * 0.05m.As("rate")).As("Bonu
 
 Custom formats are plain records: `new NumberFormat(maxDecimals: 4)`. `value.FormattedValue` returns the number exactly as it appears in the steps.
 
-### 11. Captions can contain anything
+### 11. Captions are never read as arithmetic
 
-Caption text is never interpreted as arithmetic. A caption such as `BB - card amount (gross)` is printed as one term, hyphen and parentheses included, and is never split into a subtraction. The same holds for a caption carrying a slash, such as `ხელფასი 2026/07` or `km/h`, which is never read as a division. Captions containing `=`, brackets or decimal numbers (`ბრუტო 0.000000`) are also left exactly as written.
+A caption such as `BB - card amount (gross)` is printed as one term, hyphen and parentheses included, and is never split into a subtraction. The same holds for a caption carrying a slash, such as `ხელფასი 2026/07` or `km/h`, which is never read as a division. Captions containing `=`, brackets or decimal numbers (`ბრუტო 0.000000`) are also left exactly as written.
+
+This works by swapping those characters for private-use code points (`U+E000`–`U+E009`) while the text is inside the library, and swapping them back on the way out. The one input this cannot survive is a caption that already contains those code points itself, which would come back out as punctuation. They are unassigned characters that do not occur in ordinary text, so this matters only if you generate captions from arbitrary binary data.
 
 ### 12. Shared sub-expressions are derived once
 
